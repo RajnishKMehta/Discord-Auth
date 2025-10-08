@@ -21,13 +21,13 @@ export async function GET(request: NextRequest) {
   // Generate secure random state parameter for CSRF protection
   const state = crypto.randomUUID()
 
-  // Required scopes: identify (user info) and guilds (server membership)
-  const scopes = ['identify', 'guilds'].join(' ')
+  // Required scopes: identify (user info) and guilds.members.read (server membership with roles)
+  const scopes = ['identify', 'guilds.members.read'].join(' ')
 
   // Construct Discord OAuth2 authorization URL
   const discordAuthUrl = new URL('https://discord.com/api/oauth2/authorize')
   discordAuthUrl.searchParams.set('client_id', clientId)
-  discordAuthUrl.searchParams.set('redirect_uri', redirectUri)
+  discordAuthUrl.searchParams.set('redirect_uri', `${redirectUri}/callback`)
   discordAuthUrl.searchParams.set('response_type', 'code')
   discordAuthUrl.searchParams.set('scope', scopes)
   discordAuthUrl.searchParams.set('state', state)

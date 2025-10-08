@@ -7,6 +7,7 @@ A lightweight, serverless Discord OAuth2 authentication service built with Next.
 - 🔐 **Secure OAuth2 Flow** - CSRF protection with state parameter validation
 - 🚀 **Serverless Architecture** - Edge Runtime for optimal performance
 - ✅ **Guild Membership Validation** - Verify users belong to your Discord server
+- 🎯 **Role Verification** - Check if users have specific roles in your server
 - 🔄 **Seamless Integration** - Easy to integrate with any frontend application
 - 🛡️ **Security First** - HttpOnly cookies, environment-based configuration
 - ⚡ **Fast & Lightweight** - Minimal dependencies, maximum performance
@@ -16,8 +17,8 @@ A lightweight, serverless Discord OAuth2 authentication service built with Next.
 1. User visits your authentication service
 2. Automatically redirects to Discord OAuth2 authorization
 3. User authorizes and Discord redirects back
-4. Service validates guild membership
-5. Redirects to your frontend with user data (or error message)
+4. Service validates guild membership and role verification
+5. Redirects to your frontend with user data including verification status (or error message)
 
 ## Prerequisites
 
@@ -45,9 +46,10 @@ Create a `.env.local` file in the root directory:
 ```env
 DISCORD_CLIENT_ID=your_discord_client_id
 DISCORD_CLIENT_SECRET=your_discord_client_secret
-DISCORD_REDIRECT_URI=https://your-domain.com/callback
+DISCORD_REDIRECT_URI=https://your-domain.com
 DISCORD_GUILD_ID=your_discord_server_id
-FRONTEND_URL=https://your-frontend-domain.com
+VERIFIED_ROLE_ID=your_verified_role_id
+FRONTEND_URL=https://your-frontend-domain.com/verification/callback
 ```
 
 ### Getting Discord Credentials
@@ -56,8 +58,14 @@ FRONTEND_URL=https://your-frontend-domain.com
 2. Create a new application or select existing one
 3. Navigate to OAuth2 settings
 4. Copy your Client ID and Client Secret
-5. Add your redirect URI: `https://your-domain.com/callback`
+5. Add your redirect URI: `https://your-domain.com/callback` (your base domain + `/callback`)
 6. Get your Discord Server ID by enabling Developer Mode in Discord and right-clicking your server
+7. Get the Role ID by right-clicking on the role in your server settings (Developer Mode must be enabled)
+
+**Important:** 
+- Your Discord bot must be present in the server for the role verification to work with the `guilds.members.read` scope.
+- The `DISCORD_REDIRECT_URI` should be your base domain (without `/callback`). The service automatically appends `/callback`.
+- The `FRONTEND_URL` should be the complete callback URL where users will be redirected after authentication.
 
 ## Usage
 
@@ -90,9 +98,13 @@ Handles OAuth callback from Discord.
 - `code` - Authorization code from Discord
 - `state` - CSRF protection token
 
-**Success Response:** `307 Redirect` to `{FRONTEND_URL}/verification/callback?name={name}&id={id}&tag={username}&avatar={avatar}`
+**Success Response:** `307 Redirect` to `{FRONTEND_URL}?name={name}&id={id}&tag={username}&avatar={avatar_hash}&verified={true|false}`
 
-**Error Response:** `307 Redirect` to `{FRONTEND_URL}/verification/error?msg={error_message}`
+**Note:** 
+- The redirect goes to the exact URL specified in `FRONTEND_URL` with query parameters appended
+- The `avatar` parameter contains only the Discord avatar hash. Construct the full URL on frontend as: `https://cdn.discordapp.com/avatars/{id}/{avatar}.webp`
+
+**Error Response:** `307 Redirect` to `{FRONTEND_URL}/../error?msg={error_message}` (replaces `/callback` with `/error`)
 
 ## Integration Example
 
@@ -104,10 +116,23 @@ const params = new URLSearchParams(window.location.search);
 const userName = params.get('name');
 const userId = params.get('id');
 const userTag = params.get('tag');
-const avatarUrl = params.get('avatar');
+const avatarHash = params.get('avatar');
+const isVerified = params.get('verified') === 'true';
+
+// Build avatar URL from hash
+const avatarUrl = avatarHash 
+  ? `https://cdn.discordapp.com/avatars/${userId}/${avatarHash}.webp`
+  : `https://cdn.discordapp.com/embed/avatars/${parseInt('0') % 5}.webp`;
 
 // Use the user data in your application
-console.log('Authenticated user:', { userName, userId, userTag, avatarUrl });
+console.log('Authenticated user:', { userName, userId, userTag, avatarUrl, isVerified });
+
+// Show different UI based on verification status
+if (isVerified) {
+  console.log('User has the verified role!');
+} else {
+  console.log('User does not have the verified role');
+}
 ```
 
 ### Error Handling
@@ -127,10 +152,10 @@ if (errorMessage) {
 
 This service can be deployed to any platform that supports Next.js:
 
+- ***[Cloudflare](https://dash.cloudflare.com/?to=/:account/workers-and-pages/create/pages)*** (Recommended & I'm using)
 - **[Vercel](https://vercel.com)** (Recommended)
 - **Netlify**
-- **Railway**
-- **Fly.io**
+- **Railway** (not recommend for this)
 - Or any Node.js hosting platform
 
 ### Environment Variables
@@ -153,13 +178,21 @@ Make sure to set all required environment variables in your deployment platform.
 | `Missing code` | Authorization code not received from Discord |
 | `Invalid or missing state parameter` | CSRF validation failed |
 | `Token exchange failed` | Failed to exchange code for access token |
-| `Required scopes missing` | User didn't grant necessary permissions |
+| `Required scopes missing` | User didn't grant necessary permissions (identify, guilds.members.read) |
 | `Failed to fetch user profile` | Couldn't retrieve user information |
 | `Invalid user data` | User data is incomplete or invalid |
-| `Failed to fetch guilds` | Couldn't retrieve user's server list |
+| `Invalid member data` | Couldn't retrieve user's role information |
 | `You are not a member of the required Discord server. Please join our server first.` | User is not a member of required Discord server |
 
-**Note:** To customize the guild membership error message with your server name, edit the error message in `app/callback/route.ts` at line 138. Replace the generic message with something like: `You are not in our server please join [YOUR SERVER NAME] first`
+## OAuth Scopes
+
+This service uses the following Discord OAuth2 scopes:
+- **identify** - Retrieve user's Discord profile information
+- **guilds.members.read** - Check user's guild membership and roles
+
+**Note:** The `guilds.members.read` scope requires your Discord bot to be present in the server. This scope replaces the need for the `guilds` scope and provides more detailed member information including roles.
+
+**Looking for the old version without role verification?** Check out [commit a536dab](../../tree/a536dab04815f298de7c7df49ca8e34deb5dd6ad) which only validates guild membership without checking for specific roles.
 
 ## Contributing
 
@@ -177,7 +210,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## Support
 
-If you encounter any issues or have questions, please [open an issue](https://github.com/KnarliX/Discord-Auth/issues) on GitHub.
+If you encounter any issues or have questions, please [open an issue](../../issues) on GitHub.
 
 ## Acknowledgments
 

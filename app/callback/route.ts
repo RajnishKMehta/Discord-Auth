@@ -23,16 +23,15 @@ export async function GET(request: NextRequest) {
   const clientSecret = process.env.DISCORD_CLIENT_SECRET
   const redirectUri = process.env.DISCORD_REDIRECT_URI
   const guildId = process.env.DISCORD_GUILD_ID
+  const verifiedRoleId = process.env.VERIFIED_ROLE_ID
 
-  if (!frontendUrl || !clientId || !clientSecret || !redirectUri || !guildId) {
+  if (!frontendUrl || !clientId || !clientSecret || !redirectUri || !guildId || !verifiedRoleId) {
     return new Response('Server configuration error: missing required environment variables', { status: 500 })
   }
 
-  // Helper function to build error redirect URL with proper encoding
+  // Helper function to build error redirect URL with proper encoding (using %20 for spaces)
   const buildErrorUrl = (message: string): string => {
-    const url = new URL(`${frontendUrl}/verification/error`)
-    url.searchParams.set('msg', message)
-    return url.toString()
+    return `${frontendUrl}/verification/error?msg=${encodeURIComponent(message)}`
   }
 
   // Helper function to clear oauth cookie
@@ -67,7 +66,7 @@ export async function GET(request: NextRequest) {
         client_secret: clientSecret,
         grant_type: 'authorization_code',
         code: code,
-        redirect_uri: redirectUri,
+        redirect_uri: `${redirectUri}/callback`,
       }),
     })
 
@@ -84,9 +83,9 @@ export async function GET(request: NextRequest) {
       return clearOAuthCookie(response)
     }
 
-    // Step 5: Validate required scopes (identify and guilds)
+    // Step 5: Validate required scopes (identify and guilds.members.read)
     const scopes = tokenData.scope ? tokenData.scope.split(' ') : []
-    if (!scopes.includes('identify') || !scopes.includes('guilds')) {
+    if (!scopes.includes('identify') || !scopes.includes('guilds.members.read')) {
       const response = NextResponse.redirect(buildErrorUrl('Required scopes missing'))
       return clearOAuthCookie(response)
     }
@@ -111,49 +110,41 @@ export async function GET(request: NextRequest) {
       return clearOAuthCookie(response)
     }
 
-    // Step 8: Fetch user's guild memberships
-    const guildsResponse = await fetch('https://discord.com/api/users/@me/guilds', {
+    // Step 8: Fetch user's guild member information (includes roles)
+    const memberResponse = await fetch(`https://discord.com/api/users/@me/guilds/${guildId}/member`, {
       headers: {
         Authorization: `Bearer ${tokenData.access_token}`,
       },
     })
 
-    if (!guildsResponse.ok) {
-      const response = NextResponse.redirect(buildErrorUrl('Failed to fetch guilds'))
-      return clearOAuthCookie(response)
-    }
-
-    const guilds = await guildsResponse.json()
-
-    // Step 9: Validate guilds is an array
-    if (!Array.isArray(guilds)) {
-      const response = NextResponse.redirect(buildErrorUrl('Invalid guild data'))
-      return clearOAuthCookie(response)
-    }
-
-    // Step 10: Check if user is member of the required guild
-    const isMember = guilds.some((guild: any) => guild.id === guildId)
-
-    if (!isMember) {
+    // Step 9: Check if user is member of the required guild
+    if (!memberResponse.ok) {
       const response = NextResponse.redirect(buildErrorUrl('You are not in our server please join janvi\'s server first'))
       return clearOAuthCookie(response)
     }
 
-    // Step 11: Build success redirect URL with user data
+    const member = await memberResponse.json()
+
+    // Step 10: Validate member data
+    if (!member.roles || !Array.isArray(member.roles)) {
+      const response = NextResponse.redirect(buildErrorUrl('Invalid member data'))
+      return clearOAuthCookie(response)
+    }
+
+    // Step 11: Check if user has the verified role
+    const hasVerifiedRole = member.roles.includes(verifiedRoleId)
+
+    // Step 12: Build success redirect URL with user data
     // Get display name (global_name or username as fallback)
     const displayName = user.global_name || user.username
-    
-    // Build avatar URL if user has an avatar
-    const avatarUrl = user.avatar
-      ? `https://cdn.discordapp.com/avatars/${user.id}/${user.avatar}.png`
-      : `https://cdn.discordapp.com/embed/avatars/${parseInt(user.discriminator || '0') % 5}.png`
 
     // Construct success callback URL with user parameters
-    const successUrl = new URL(`${frontendUrl}/verification/callback`)
+    const successUrl = new URL(frontendUrl)
     successUrl.searchParams.set('name', displayName)
     successUrl.searchParams.set('id', user.id)
-    successUrl.searchParams.set('tag', user.username)
-    successUrl.searchParams.set('avatar', avatarUrl)
+    successUrl.searchParams.set('username', user.username)
+    successUrl.searchParams.set('avatar', user.avatar || '')
+    successUrl.searchParams.set('verified', hasVerifiedRole.toString())
 
     // Redirect to frontend with user data and clear oauth cookie
     const response = NextResponse.redirect(successUrl.toString())

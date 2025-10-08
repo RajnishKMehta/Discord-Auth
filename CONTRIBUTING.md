@@ -27,6 +27,13 @@ pnpm install
 cp .env.example .env.local
 
 # Add your Discord credentials to .env.local
+# Make sure to include:
+# - DISCORD_CLIENT_ID
+# - DISCORD_CLIENT_SECRET
+# - DISCORD_REDIRECT_URI (base domain without /callback)
+# - DISCORD_GUILD_ID
+# - VERIFIED_ROLE_ID
+# - FRONTEND_URL (full callback URL with /verification/callback)
 
 # Run development server
 pnpm dev
@@ -46,8 +53,11 @@ Before submitting a Pull Request:
 
 1. Test the OAuth flow end-to-end
 2. Verify error handling works correctly
-3. Ensure no console errors or warnings
-4. Test with both development and production builds
+3. Test role verification feature with users who have and don't have the verified role
+4. Ensure the `verified` parameter is correctly passed in the callback URL
+5. Ensure no console errors or warnings
+6. Test with both development and production builds
+7. Verify that your Discord bot is in the server for `guilds.members.read` scope to work
 
 ## Pull Request Process
 
