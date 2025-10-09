@@ -33,7 +33,8 @@ cp .env.example .env.local
 # - DISCORD_REDIRECT_URI (base domain without /callback)
 # - DISCORD_GUILD_ID
 # - VERIFIED_ROLE_ID
-# - FRONTEND_URL (full callback URL with /verification/callback)
+# - CALLBACK_URL (full callback URL with /verification/callback)
+# - ERROR_URL (error page URL with ?msg parameter, e.g., https://example.com/error?msg)
 
 # Run development server
 pnpm dev

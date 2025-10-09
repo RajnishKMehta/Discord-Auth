@@ -5,7 +5,7 @@ const nextConfig = {
   
   // Environment variables available on the client side (if needed)
   env: {
-    FRONTEND_URL: process.env.FRONTEND_URL,
+    CALLBACK_URL: process.env.CALLBACK_URL,
   },
 }
 

@@ -49,7 +49,8 @@ DISCORD_CLIENT_SECRET=your_discord_client_secret
 DISCORD_REDIRECT_URI=https://your-domain.com
 DISCORD_GUILD_ID=your_discord_server_id
 VERIFIED_ROLE_ID=your_verified_role_id
-FRONTEND_URL=https://your-frontend-domain.com/verification/callback
+CALLBACK_URL=https://your-frontend-domain.com/verification/callback
+ERROR_URL=https://your-frontend-domain.com/verification/error?msg
 ```
 
 ### Getting Discord Credentials
@@ -65,7 +66,8 @@ FRONTEND_URL=https://your-frontend-domain.com/verification/callback
 **Important:** 
 - Your Discord bot must be present in the server for the role verification to work with the `guilds.members.read` scope.
 - The `DISCORD_REDIRECT_URI` should be your base domain (without `/callback`). The service automatically appends `/callback`.
-- The `FRONTEND_URL` should be the complete callback URL where users will be redirected after authentication.
+- The `CALLBACK_URL` should be the complete callback URL where users will be redirected after successful authentication.
+- The `ERROR_URL` should include the `?msg` parameter at the end (e.g., `https://example.com/error?msg`). The error message will be appended after the `=` sign.
 
 ## Usage
 
@@ -98,13 +100,17 @@ Handles OAuth callback from Discord.
 - `code` - Authorization code from Discord
 - `state` - CSRF protection token
 
-**Success Response:** `307 Redirect` to `{FRONTEND_URL}?name={name}&id={id}&tag={username}&avatar={avatar_hash}&verified={true|false}`
+**Success Response:** `307 Redirect` to `{CALLBACK_URL}?name={name}&id={id}&tag={username}&avatar={avatar_hash}&verified={true|false}`
 
 **Note:** 
-- The redirect goes to the exact URL specified in `FRONTEND_URL` with query parameters appended
+- The redirect goes to the exact URL specified in `CALLBACK_URL` with query parameters appended
 - The `avatar` parameter contains only the Discord avatar hash. Construct the full URL on frontend as: `https://cdn.discordapp.com/avatars/{id}/{avatar}.webp`
 
-**Error Response:** `307 Redirect` to `{FRONTEND_URL}/../error?msg={error_message}` (replaces `/callback` with `/error`)
+**Error Response:** `307 Redirect` to `{ERROR_URL}={error_message}`
+
+**Note:**
+- The `ERROR_URL` should be configured with the `?msg` parameter included (e.g., `https://your-domain.com/error?msg`)
+- The error message will be appended after the `=` sign with proper URL encoding
 
 ## Integration Example
 

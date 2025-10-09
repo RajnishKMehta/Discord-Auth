@@ -18,20 +18,21 @@ export async function GET(request: NextRequest) {
   const state = searchParams.get('state')
   
   // Validate all required environment variables
-  const frontendUrl = process.env.FRONTEND_URL
+  const callbackUrl = process.env.CALLBACK_URL
+  const errorUrl = process.env.ERROR_URL
   const clientId = process.env.DISCORD_CLIENT_ID
   const clientSecret = process.env.DISCORD_CLIENT_SECRET
   const redirectUri = process.env.DISCORD_REDIRECT_URI
   const guildId = process.env.DISCORD_GUILD_ID
   const verifiedRoleId = process.env.VERIFIED_ROLE_ID
 
-  if (!frontendUrl || !clientId || !clientSecret || !redirectUri || !guildId || !verifiedRoleId) {
+  if (!callbackUrl || !errorUrl || !clientId || !clientSecret || !redirectUri || !guildId || !verifiedRoleId) {
     return new Response('Server configuration error: missing required environment variables', { status: 500 })
   }
 
   // Helper function to build error redirect URL with proper encoding (using %20 for spaces)
   const buildErrorUrl = (message: string): string => {
-    return `${frontendUrl}/verification/error?msg=${encodeURIComponent(message)}`
+    return `${errorUrl}=${encodeURIComponent(message)}`
   }
 
   // Helper function to clear oauth cookie
@@ -139,7 +140,7 @@ export async function GET(request: NextRequest) {
     const displayName = user.global_name || user.username
 
     // Construct success callback URL with user parameters
-    const successUrl = new URL(frontendUrl)
+    const successUrl = new URL(callbackUrl)
     successUrl.searchParams.set('name', displayName)
     successUrl.searchParams.set('id', user.id)
     successUrl.searchParams.set('username', user.username)
