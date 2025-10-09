@@ -100,7 +100,7 @@ Handles OAuth callback from Discord.
 - `code` - Authorization code from Discord
 - `state` - CSRF protection token
 
-**Success Response:** `307 Redirect` to `{CALLBACK_URL}?name={name}&id={id}&tag={username}&avatar={avatar_hash}&verified={true|false}`
+**Success Response:** `307 Redirect` to `{CALLBACK_URL}?name={name}&id={id}&username={username}&avatar={avatar_hash}&verified={true|false}`
 
 **Note:** 
 - The redirect goes to the exact URL specified in `CALLBACK_URL` with query parameters appended
@@ -119,9 +119,9 @@ Handles OAuth callback from Discord.
 ```javascript
 // Handle success callback
 const params = new URLSearchParams(window.location.search);
-const userName = params.get('name');
+const displayName = params.get('name');
 const userId = params.get('id');
-const userTag = params.get('tag');
+const username = params.get('username');
 const avatarHash = params.get('avatar');
 const isVerified = params.get('verified') === 'true';
 
@@ -131,7 +131,7 @@ const avatarUrl = avatarHash
   : `https://cdn.discordapp.com/embed/avatars/${parseInt('0') % 5}.webp`;
 
 // Use the user data in your application
-console.log('Authenticated user:', { userName, userId, userTag, avatarUrl, isVerified });
+console.log('Authenticated user:', { displayName, userId, username, avatarUrl, isVerified });
 
 // Show different UI based on verification status
 if (isVerified) {
@@ -198,7 +198,7 @@ This service uses the following Discord OAuth2 scopes:
 
 **Note:** The `guilds.members.read` scope requires your Discord bot to be present in the server. This scope replaces the need for the `guilds` scope and provides more detailed member information including roles.
 
-**Looking for the old version without role verification?** Check out [commit a536dab](../../tree/a536dab04815f298de7c7df49ca8e34deb5dd6ad) which only validates guild membership without checking for specific roles.
+**Looking for the old version without role verification?** Check out commit [a536dab](../../tree/a536dab04815f298de7c7df49ca8e34deb5dd6ad) which only validates guild membership without checking for specific roles.
 
 ## Contributing
 
@@ -225,4 +225,4 @@ If you encounter any issues or have questions, please [open an issue](../../issu
 
 ---
 
-Made with ❤️ for the Discord community and janvi's Discord server 
+Made with ❤️ for the Discord community and [janvi's Discord server](https://joindc.pages.dev)
