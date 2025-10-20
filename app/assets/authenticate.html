@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='0.9em' font-size='90' fill='%233b82f6'>RJ</text></svg>">
+  <title>Authentication</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      background: #000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      font-family: system-ui, -apple-system, sans-serif;
+      color: #fff;
+      cursor: pointer;
+    }
+
+    #continue-screen {
+      text-align: center;
+      padding: 40px;
+    }
+
+    #continue-screen h1 {
+      font-size: 28px;
+      margin-bottom: 12px;
+      font-weight: 500;
+    }
+
+    #continue-screen p {
+      font-size: 16px;
+      margin-bottom: 24px;
+      opacity: 0.7;
+    }
+
+    #continue-btn {
+      background: #fff;
+      color: #000;
+      padding: 12px 40px;
+      font-size: 16px;
+      font-weight: 500;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+
+    #continue-btn:hover {
+      opacity: 0.9;
+    }
+
+    #auth-status {
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      gap: 20px;
+    }
+
+    #auth-status svg {
+      width: 60vw;
+      height: auto;
+    }
+
+    .status-text {
+      font-size: 3.6vw;
+    }
+
+    .dot {
+      animation: dot 1.4s infinite;
+    }
+
+    .dot:nth-child(2) { animation-delay: 0.2s; }
+    .dot:nth-child(3) { animation-delay: 0.4s; }
+
+    @keyframes dot {
+      0%, 60%, 100% { opacity: 0; }
+      30% { opacity: 1; }
+    }
+
+    .hidden {
+      display: none !important;
+    }
+  </style>
+</head>
+<body>
+  <div id="continue-screen">
+    <h1>Authentication Required</h1>
+    <p>Click anywhere or press any key to continue</p>
+    <button id="continue-btn">Continue</button>
+  </div>
+
+  <div id="auth-status">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+      <g stroke="#3b82f6" stroke-width="2" fill="none">
+        <circle cx="50" cy="50" r="30" stroke="#2563eb" opacity="0.3" />
+        <circle cx="50" cy="50" r="40" stroke="#60a5fa" opacity="0.15" />
+
+        <path d="M10 50 A40 40 0 0 1 90 50" stroke="#3b82f6" stroke-dasharray="10 10">
+          <animate attributeName="stroke-dashoffset" values="0;20" dur="0.8s" repeatCount="indefinite" />
+        </path>
+        <path d="M10 50 A40 40 0 0 0 90 50" stroke="#60a5fa" stroke-dasharray="10 10">
+          <animate attributeName="stroke-dashoffset" values="20;0" dur="0.8s" repeatCount="indefinite" />
+        </path>
+
+        <circle cx="50" cy="50" r="0" stroke="#3b82f6" stroke-width="2.5">
+          <animate attributeName="r" values="0;40" dur="1.8s" repeatCount="indefinite" />
+          <animate attributeName="opacity" values="0.9;0" dur="1.8s" repeatCount="indefinite" />
+        </circle>
+        <circle cx="50" cy="50" r="10" stroke="#60a5fa" stroke-width="2.5" opacity="0.5">
+          <animate attributeName="r" values="10;50" dur="1.8s" begin="0.9s" repeatCount="indefinite" />
+          <animate attributeName="opacity" values="0.7;0" dur="1.8s" begin="0.9s" repeatCount="indefinite" />
+        </circle>
+
+        <g transform="translate(50,50)">
+          <circle r="6" stroke="#3b82f6" stroke-width="2" fill="none" stroke-dasharray="10 8">
+            <animateTransform attributeName="transform" type="rotate" from="0" to="360" dur="1.6s" repeatCount="indefinite" />
+          </circle>
+          <circle r="2.5" fill="#60a5fa" opacity="0.8">
+            <animate attributeName="opacity" values="0.8;0.3;0.8" dur="1.6s" repeatCount="indefinite" />
+          </circle>
+        </g>
+      </g>
+
+      <text x="50" y="54" text-anchor="middle"
+        font-family="cursive"
+        font-weight="700"
+        font-size="15"
+        fill="#ffffff"
+        opacity="0.03"
+        transform="rotate(-30 50 50)">
+        Rajnish
+      </text>
+    </svg>
+    <div class="status-text">Authenticating<span class="dot">.</span><span class="dot">.</span><span class="dot">.</span></div>
+  </div>
+
+  <script>
+    // Configuration replaced
+    const CONFIG = {
+      callbackUrl: {CALLBACK_URL},
+      mainOrigin: {MAIN_ORIGIN},
+      userData: {USER_DATA},
+      goto: {GOTO},
+      ack: {ACK},
+      errorUrl: {ERROR_URL}
+    };
+
+    let ackReceived = false;
+    let popupWindow = null;
+    let messagingInterval = null;
+    let ackTimeout = null;
+    let continueScreenTimeout = null;
+
+    const continueScreen = document.getElementById('continue-screen');
+    const authStatus = document.getElementById('auth-status');
+    const continueBtn = document.getElementById('continue-btn');
+
+    // Start 2-minute timeout when page loads
+    continueScreenTimeout = setTimeout(() => {
+      window.location.href = CONFIG.errorUrl + encodeURIComponent('Session expired: authentication timeout in 2 minutes. Please try again and click continue button within 2 minutes');
+    }, 120000);
+
+    // Listen for acknowledgment (ack) from popup window
+    window.addEventListener('message', (ev) => {
+      if (ev.origin !== CONFIG.mainOrigin) {
+        console.error('Invalid origin:', ev.origin);
+        window.location.href = CONFIG.errorUrl + encodeURIComponent('Invalid ACK origin: untrusted ack data source (domain)');
+        return;
+      }
+      
+      const data = ev.data || {};
+      if (data.type === 'auth-ack' && data.ack === CONFIG.ack) {
+        ackReceived = true;
+        
+        // Clean up and redirect
+        if (ackTimeout) clearTimeout(ackTimeout);
+        if (messagingInterval) clearInterval(messagingInterval);
+        if (continueScreenTimeout) clearTimeout(continueScreenTimeout);
+        if (popupWindow && !popupWindow.closed) popupWindow.close();
+        
+        window.location.href = CONFIG.mainOrigin + CONFIG.goto;
+      }
+    });
+
+    function showAuthStatus() {
+      continueScreen.classList.add('hidden');
+      authStatus.style.display = 'flex';
+      document.body.style.cursor = 'default';
+    }
+
+    function startAuthentication() {
+      // Clear timeout jab user click kare
+      if (continueScreenTimeout) {
+        clearTimeout(continueScreenTimeout);
+        continueScreenTimeout = null;
+      }
+      
+      showAuthStatus();
+      
+      // Open popup to main domain callback
+      const popup = window.open(CONFIG.callbackUrl, '_blank');
+      
+      if (popup) {
+        popupWindow = popup;
+        
+        // Timeout if no ack received in 7 seconds
+        ackTimeout = setTimeout(() => {
+          if (!ackReceived) {
+            if (messagingInterval) clearInterval(messagingInterval);
+            if (popupWindow && !popupWindow.closed) popupWindow.close();
+            window.location.href = CONFIG.errorUrl + encodeURIComponent('Authentication timeout: no acknowledgment received from main domain');
+          }
+        }, 7000);
+        
+        // Send data to popup every 500ms
+        messagingInterval = setInterval(() => {
+          if (popupWindow.closed) {
+            clearInterval(messagingInterval);
+            if (!ackReceived) {
+              window.location.href = CONFIG.errorUrl + encodeURIComponent('Popup window was closed before authentication completed');
+            }
+            return;
+          }
+          
+          try {
+            popupWindow.postMessage({
+              type: 'auth',
+              userData: CONFIG.userData,
+              goto: CONFIG.goto,
+              ack: CONFIG.ack
+            }, CONFIG.mainOrigin);
+          } catch (e) {
+            console.error('Error sending message:', e);
+            clearInterval(messagingInterval);
+            window.location.href = CONFIG.errorUrl + encodeURIComponent('Failed to send authentication data: ' + e.message);
+          }
+        }, 500);
+        
+        // Stop messaging after 7 seconds
+        setTimeout(() => {
+          if (messagingInterval) clearInterval(messagingInterval);
+        }, 7000);
+      } else {
+        // Popup blocked, redirect to error
+        window.location.href = CONFIG.errorUrl + encodeURIComponent('Popup blocked: please allow popups for this site and try again');
+      }
+    }
+
+    function openPopupViaButton() {
+      if (ackTimeout) clearTimeout(ackTimeout);
+      if (messagingInterval) clearInterval(messagingInterval);
+      
+      continueScreen.classList.remove('hidden');
+      authStatus.style.display = 'none';
+      document.body.style.cursor = 'pointer';
+      
+      alert('Please allow popups and click Continue button');
+    }
+
+    // Event listeners for user interaction
+    continueBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      startAuthentication();
+    });
+
+    document.addEventListener('click', (e) => {
+      if (continueScreen.classList.contains('hidden')) return;
+      startAuthentication();
+    });
+
+    document.addEventListener('keydown', (e) => {
+      if (continueScreen.classList.contains('hidden')) return;
+      startAuthentication();
+    });
+  </script>
+</body>
+</html>

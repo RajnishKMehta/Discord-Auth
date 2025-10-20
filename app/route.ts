@@ -1,51 +1,59 @@
 import { NextRequest, NextResponse } from 'next/server'
 
-// Use Edge runtime for better performance
 export const runtime = 'edge'
 
-/**
- * Discord OAuth2 Login Route
- * Redirects user to Discord authorization page with required scopes
- * Implements CSRF protection using state parameter
- */
+// Main OAuth login route - redirects to Discord authorization
 export async function GET(request: NextRequest) {
-  // Read environment variables
+  // Load environment variables
+  const mainDomain = process.env.MAIN_DOMAIN
+  const callbackPath = process.env.CALLBACK_PATH
+  const errorUrl = process.env.ERROR_URL || `https://dc-auth-err.pages.dev?msg=`
   const clientId = process.env.DISCORD_CLIENT_ID
-  const redirectUri = process.env.DISCORD_REDIRECT_URI
+  const clientSecret = process.env.DISCORD_CLIENT_SECRET
+  const authDomain = process.env.AUTH_DOMAIN
 
-  // Validate environment variables exist
-  if (!clientId || !redirectUri) {
-    return new Response('Server configuration error', { status: 500 })
+  // Check all required env vars are present
+  if (!mainDomain || !callbackPath || !errorUrl || !clientId || !clientSecret || !authDomain) {
+    return new Response(`Server configuration error: missing required environment variables\n\n\nif you are visitor: check back in few hours or inform the owner if you know her/him\n\nif you are owner: add .env file like this in environment variables section:\nDISCORD_CLIENT_ID=discord_bot_clientId\nDISCORD_CLIENT_SECRET=discord_bot_client_secret\nAUTH_DOMAIN=this site domain\nMAIN_DOMAIN=your main website domain\nCALLBACK_PATH=callback path from main website\nERROR_URL=error page url like https://dc-auth-err.pages.dev?msg=`, { status: 500 })
   }
 
-  // Generate secure random state parameter for CSRF protection
-  const state = crypto.randomUUID()
+  // Get redirect path from URL params
+  const baigan = request.nextUrl.searchParams
+  const goto = baigan.get('to') || baigan.get('goto') || baigan.get('redirect') || '/'
 
-  // Required scopes: identify (user info) and guilds.members.read (server membership with roles)
-  const scopes = ['identify', 'guilds.members.read'].join(' ')
+  // Validate redirect to prevent open redirect attacks
+  const validatedGoto = (goto && goto.startsWith('/') && !goto.startsWith('//')) ? goto : ''
 
-  // Construct Discord OAuth2 authorization URL
+  // Generate CSRF token
+  const babaji = `RJ_${crypto.randomUUID().replace(/-/g, '').slice(0, 12)}`;
+
+  // Create state parameter with redirect path and CSRF token
+  const infodata = [validatedGoto, babaji];
+  const state = btoa(JSON.stringify(infodata));
+
+  // Discord OAuth scope - only identify to get user data
+  const scopes = ['identify'].join(' ')
+
+  // Build Discord authorization URL
   const discordAuthUrl = new URL('https://discord.com/api/oauth2/authorize')
   discordAuthUrl.searchParams.set('client_id', clientId)
-  discordAuthUrl.searchParams.set('redirect_uri', `${redirectUri}/callback`)
+  discordAuthUrl.searchParams.set('redirect_uri', `https://${authDomain}/callback`)
   discordAuthUrl.searchParams.set('response_type', 'code')
   discordAuthUrl.searchParams.set('scope', scopes)
   discordAuthUrl.searchParams.set('state', state)
 
-  // Create response with redirect
+  // Redirect to Discord
   const response = NextResponse.redirect(discordAuthUrl.toString())
-  
-  // Check if request is HTTPS for secure cookie
   const isSecure = request.url.startsWith('https://')
-  
-  // Store state in cookie for validation (expires in 5 minutes)
-  response.cookies.set('oauth_state', state, {
+
+  // Save CSRF token in secure cookie
+  response.cookies.set('babaji', babaji, {
     httpOnly: true,
     secure: isSecure,
     sameSite: 'lax',
-    maxAge: 300,
+    maxAge: 300, // 5 minutes
     path: '/'
   })
 
   return response
-}
+};

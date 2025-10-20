@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Authenticating...</title>
+  <link rel='icon' type="image/svg+xml" href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='0.9em' font-size='90' fill='%238b5cf6'>RJ</text></svg>">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      background: #000;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      font-family: monospace;
+      color: #fff;
+    }
+    
+    svg {
+      width: 60vw;
+      height: auto;
+    }
+    .text {
+      font-size: 3.6vw;
+    }
+
+    .dot {
+      animation: dot 1.4s infinite;
+    }
+
+    .dot:nth-child(2) { animation-delay: 0.2s; }
+    .dot:nth-child(3) { animation-delay: 0.4s; }
+
+    @keyframes dot {
+      0%, 60%, 100% { opacity: 0.2; }
+      30% { opacity: 1; }
+    }
+  </style>
+</head>
+<body>
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+    <g stroke="#1cdfff" stroke-width="2" fill="none">
+
+      <circle cx="50" cy="50" r="40" stroke="#00e5ff" opacity="0.2" />
+      <circle cx="50" cy="50" r="30" stroke="#66f0ff" opacity="0.35" />
+
+      <path d="M10 50 A40 40 0 0 1 90 50" stroke="#00bfff" stroke-dasharray="10 10">
+        <animate attributeName="stroke-dashoffset" values="20;0" dur="0.8s" repeatCount="indefinite" />
+      </path>
+      <path d="M10 50 A40 40 0 0 0 90 50" stroke="#0099ff" stroke-dasharray="10 10">
+        <animate attributeName="stroke-dashoffset" values="0;20" dur="0.8s" repeatCount="indefinite" />
+      </path>
+
+      <circle cx="50" cy="50" r="40" stroke="#33ffff" stroke-width="2.5" fill="none">
+        <animate attributeName="r" values="40;0" dur="1.8s" repeatCount="indefinite" />
+        <animate attributeName="opacity" values="0;0.9" dur="1.8s" repeatCount="indefinite" />
+      </circle>
+
+      <circle cx="50" cy="50" r="50" stroke="#00d4ff" stroke-width="2.5" fill="none" opacity="0.5">
+        <animate attributeName="r" values="50;10" dur="1.8s" begin="0.9s" repeatCount="indefinite" />
+        <animate attributeName="opacity" values="0;0.7" dur="1.8s" begin="0.9s" repeatCount="indefinite" />
+      </circle>
+
+      <g transform="translate(50,50)">
+        <circle r="6" stroke="#33f0ff" stroke-width="2" fill="none" stroke-dasharray="10 8">
+          <animateTransform attributeName="transform" type="rotate" from="360" to="0" dur="1.8s" repeatCount="indefinite" />
+        </circle>
+        <circle r="2.5" fill="#0099ff" opacity="0.85">
+          <animate attributeName="opacity" values="0.85;0.4;0.85" dur="1.6s" repeatCount="indefinite" />
+        </circle>
+      </g>
+    </g>
+
+    <text x="50" y="54" text-anchor="middle"
+          font-family="cursive"
+          font-weight="700"
+          font-size="15"
+          fill="#00ccff"
+          opacity="0.04"
+          transform="rotate(-30 50 50)"
+          pointer-events="none">
+      Janvi 
+    </text>
+  </svg>
+  
+  <div class="text">Authenticating<span class="dot">.</span><span class="dot">.</span><span class="dot">.</span></div>
+
+  <script>
+    // Configuration - change auth_origin to your AUTH_DOMAIN
+    const auth_origin = 'https://auth.example.com';
+    const STORAGE_KEY = 'login_data';
+    const errorpage = 'https://dc-auth-err.pages.dev?msg=';
+    let dataReceived = false;
+    
+    // Timeout if no data received in 2.9 seconds
+    const timeout = setTimeout(() => {
+      if (!dataReceived) {
+        window.location.href = errorpage + encodeURIComponent('Timeout: no data received');
+      }
+    }, 3000);
+
+    // Save authentication data to localStorage
+    function saveAuthData(data) {
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+        return true;
+      } catch (error) {
+        window.location.href = errorpage + encodeURIComponent('Failed to save data, please check your browser settings');
+        return false;
+      }
+    }
+
+    // Listen for auth data from opener window
+    window.addEventListener('message', (ev) => {
+      // Verify message origin
+      if (ev.origin !== auth_origin) {
+        window.location.href = errorpage + encodeURIComponent('Unauthorized data source: authentication data from untrusted domain');
+        return;
+      }
+      const message = ev.data;
+      
+      // Process auth message
+      if (message.type === 'auth' && message.userData && message.goto !== undefined && message.ack) {
+        dataReceived = true;
+        clearTimeout(timeout);
+        
+        // Save to localStorage
+        const saved = saveAuthData(message.userData);
+        
+        // Send acknowledgment back
+        if (ev.source && saved && ev.source.postMessage) {
+          ev.source.postMessage(
+            { type: 'auth-ack', ack: message.ack },
+            ev.origin
+          );
+          
+          // Close popup or redirect
+          setTimeout(() => {
+            try {
+              window.close();
+              
+              setTimeout(() => {
+                if (!window.closed) {
+                  window.location.href = message.goto || '/';
+                }
+              }, 100);
+            } catch (e) {
+              window.location.href = message.goto || '/';
+            }
+          }, 100);
+        }
+      }
+    });
+  </script>
+</body>
+</html>

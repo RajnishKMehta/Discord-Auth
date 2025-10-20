@@ -1,228 +1,338 @@
 # Discord OAuth Authentication Service
 
-A lightweight, serverless Discord OAuth2 authentication service built with Next.js. This service validates Discord server membership and redirects users to your frontend application with their profile information.
+A lightweight, serverless Discord OAuth2 authentication service built with Next.js that securely transfers user data to frontend applications using popup-based postMessage architecture.
 
-## Features
+## ✨ Features
 
-- 🔐 **Secure OAuth2 Flow** - CSRF protection with state parameter validation
-- 🚀 **Serverless Architecture** - Edge Runtime for optimal performance
-- ✅ **Guild Membership Validation** - Verify users belong to your Discord server
-- 🎯 **Role Verification** - Check if users have specific roles in your server
-- 🔄 **Seamless Integration** - Easy to integrate with any frontend application
-- 🛡️ **Security First** - HttpOnly cookies, environment-based configuration
-- ⚡ **Fast & Lightweight** - Minimal dependencies, maximum performance
+- 🔐 **Secure OAuth2 Flow** - Industry-standard Discord OAuth implementation
+- 🚀 **Edge Runtime** - Blazing fast with Next.js Edge Runtime
+- 🔒 **Popup-based Transfer** - Secure postMessage architecture (no URL exposure)
+- 🎯 **Simple Integration** - Easy to integrate with any frontend application
+- 🛡️ **CSRF Protection** - Built-in state validation with secure cookies
+- ⚡ **Stateless** - No database required
+- 🌐 **Cross-Domain** - Works seamlessly across different domains
+- 📦 **Complete User Data** - All Discord user profile data forwarded directly
 
-## How It Works
+## 🚨 Security
 
-1. User visits your authentication service
-2. Automatically redirects to Discord OAuth2 authorization
-3. User authorizes and Discord redirects back
-4. Service validates guild membership and role verification
-5. Redirects to your frontend with user data including verification status (or error message)
+This version uses **secure popup-based postMessage** for transferring authentication data, eliminating security vulnerabilities present in older versions that exposed user data in URL parameters.
 
-## Prerequisites
+### Why Popup-based?
 
-- Node.js 18+ or compatible runtime
-- Discord Application with OAuth2 credentials
-- Discord Server (Guild) ID for membership validation
+- **No URL Exposure**: User data never appears in URL parameters
+- **No localStorage Partitioning**: Works around browser storage isolation
+- **Acknowledgment System**: Ensures data is received before proceeding
+- **Timeout Protection**: Automatic fallback if transfer fails
 
-## Installation
+## 🔧 Environment Variables
+
+Create a `.env.local` file with the following variables:
+
+```env
+# Discord Application Credentials
+DISCORD_CLIENT_ID=your_discord_client_id
+DISCORD_CLIENT_SECRET=your_discord_client_secret
+
+# Domain Configuration
+AUTH_DOMAIN=auth.example.com
+MAIN_DOMAIN=example.com
+
+# Callback Configuration
+CALLBACK_PATH=/callback
+ERROR_URL=https://example.com/error?msg=
+```
+
+### Variable Descriptions
+
+| Variable | Description | Example |
+|----------|-------------|---------|
+| `DISCORD_CLIENT_ID` | Your Discord application client ID | `123456789012345678` |
+| `DISCORD_CLIENT_SECRET` | Your Discord application client secret | `abc123def456...` |
+| `AUTH_DOMAIN` | Authentication service domain (without https://) | `auth.example.com` |
+| `MAIN_DOMAIN` | Your main application domain (without https://) | `example.com` |
+| `CALLBACK_PATH` | Callback endpoint path on main domain | `/callback` |
+| `ERROR_URL` | Error page URL with message parameter support | `https://example.com/error?msg=` |
+
+## 🚀 Quick Start
+
+### 1. Install Dependencies
 
 ```bash
-# Clone the repository
-git clone https://github.com/KnarliX/Discord-Auth.git
-cd Discord-Auth
-
-# Install dependencies
 pnpm install
 # or
 npm install
+# or
+yarn install
 ```
 
-## Configuration
-
-Create a `.env.local` file in the root directory:
-
-```env
-DISCORD_CLIENT_ID=your_discord_client_id
-DISCORD_CLIENT_SECRET=your_discord_client_secret
-DISCORD_REDIRECT_URI=https://your-domain.com
-DISCORD_GUILD_ID=your_discord_server_id
-VERIFIED_ROLE_ID=your_verified_role_id
-CALLBACK_URL=https://your-frontend-domain.com/verification/callback
-ERROR_URL=https://your-frontend-domain.com/verification/error?msg
-```
-
-### Getting Discord Credentials
+### 2. Set Up Discord Application
 
 1. Go to [Discord Developer Portal](https://discord.com/developers/applications)
-2. Create a new application or select existing one
-3. Navigate to OAuth2 settings
-4. Copy your Client ID and Client Secret
-5. Add your redirect URI: `https://your-domain.com/callback` (your base domain + `/callback`)
-6. Get your Discord Server ID by enabling Developer Mode in Discord and right-clicking your server
-7. Get the Role ID by right-clicking on the role in your server settings (Developer Mode must be enabled)
+2. Create a new application or select an existing one
+3. Navigate to OAuth2 section
+4. Add redirect URI: `https://YOUR_AUTH_DOMAIN/callback`
+5. Copy Client ID and Client Secret
 
-**Important:** 
-- Your Discord bot must be present in the server for the role verification to work with the `guilds.members.read` scope.
-- The `DISCORD_REDIRECT_URI` should be your base domain (without `/callback`). The service automatically appends `/callback`.
-- The `CALLBACK_URL` should be the complete callback URL where users will be redirected after successful authentication.
-- The `ERROR_URL` should include the `?msg` parameter at the end (e.g., `https://example.com/error?msg`). The error message will be appended after the `=` sign.
+### 3. Configure Environment Variables
 
-## Usage
+Create `.env.local` file with your Discord credentials and domain configuration (see above).
 
-### Development
+### 4. Run Development Server
 
 ```bash
 pnpm dev
+# or
+npm run dev
+# or
+yarn dev
 ```
 
-The service will run on `http://localhost:5000`
-
-### Production
+### 5. Build for Production
 
 ```bash
 pnpm build
-pnpm start
+# or
+npm run build
+# or
+yarn build
 ```
 
-## API Routes
+## 📖 How It Works
 
-### `GET /`
-Initiates OAuth flow by redirecting to Discord authorization page.
+### Authentication Flow
 
-**Response:** `307 Redirect` to Discord OAuth
+1. User visits: `https://auth.example.com/?to=/dashboard`
+2. Redirected to Discord OAuth authorization
+3. After approval, Discord redirects back to auth domain
+4. Auth service validates OAuth code and fetches user data
+5. Continue screen is displayed
+6. User clicks or presses any key to proceed
+7. Popup window opens to `https://example.com/callback`
+8. User data is transferred via secure postMessage
+9. Main domain saves data to localStorage
+10. Popup closes automatically
+11. User is redirected to the intended page
 
-### `GET /callback`
-Handles OAuth callback from Discord.
+### Data Transfer Security
 
-**Query Parameters:**
-- `code` - Authorization code from Discord
-- `state` - CSRF protection token
+- **CSRF Protection**: Random token validation prevents cross-site attacks
+- **Origin Validation**: Only whitelisted domains can receive data
+- **HTTP-Only Cookies**: Tokens stored securely, inaccessible to JavaScript
+- **Acknowledgment System**: Ensures data receipt before proceeding
+- **Timeout Mechanisms**: Automatic error handling if transfer fails
 
-**Success Response:** `307 Redirect` to `{CALLBACK_URL}?name={name}&id={id}&username={username}&avatar={avatar_hash}&verified={true|false}`
+## 📊 User Data Structure
 
-**Note:** 
-- The redirect goes to the exact URL specified in `CALLBACK_URL` with query parameters appended
-- The `avatar` parameter contains only the Discord avatar hash. Construct the full URL on frontend as: `https://cdn.discordapp.com/avatars/{id}/{avatar}.webp`
+The service returns all Discord user profile data:
 
-**Error Response:** `307 Redirect` to `{ERROR_URL}={error_message}`
-
-**Note:**
-- The `ERROR_URL` should be configured with the `?msg` parameter included (e.g., `https://your-domain.com/error?msg`)
-- The error message will be appended after the `=` sign with proper URL encoding
-
-## Integration Example
-
-### Frontend Implementation
-
-```javascript
-// Handle success callback
-const params = new URLSearchParams(window.location.search);
-const displayName = params.get('name');
-const userId = params.get('id');
-const username = params.get('username');
-const avatarHash = params.get('avatar');
-const isVerified = params.get('verified') === 'true';
-
-// Build avatar URL from hash
-const avatarUrl = avatarHash 
-  ? `https://cdn.discordapp.com/avatars/${userId}/${avatarHash}.webp`
-  : `https://cdn.discordapp.com/embed/avatars/${parseInt('0') % 5}.webp`;
-
-// Use the user data in your application
-console.log('Authenticated user:', { displayName, userId, username, avatarUrl, isVerified });
-
-// Show different UI based on verification status
-if (isVerified) {
-  console.log('User has the verified role!');
-} else {
-  console.log('User does not have the verified role');
+```typescript
+{
+  id: string                    // User's Discord ID
+  username: string              // Username
+  discriminator: string         // User discriminator (legacy)
+  global_name: string           // Display name
+  avatar: string                // Avatar hash
+  mfa_enabled: boolean          // MFA enabled
+  banner: string                // Banner hash
+  accent_color: number          // Accent color
+  locale: string                // User locale
+  flags: number                 // User flags
+  premium_type: number          // Nitro subscription type
+  public_flags: number          // Public flags
+  avatar_decoration_data: any   // Avatar decoration
+  authAt: string                // Authentication timestamp
 }
 ```
 
-### Error Handling
+### Example Response
 
-```javascript
-// Handle error callback
-const params = new URLSearchParams(window.location.search);
-const errorMessage = params.get('msg');
+Here's a real example of the data structure you'll receive:
 
-if (errorMessage) {
-  console.error('Authentication error:', errorMessage);
-  // Show error to user
+```json
+{
+  "id": "1212719184870383621",
+  "username": "janvidreamer",
+  "discriminator": "7876",
+  "global_name": "Janvi Mehta",
+  "avatar": "a1cf882453857e.....",
+  "mfa_enabled": true,
+  "banner": null,
+  "accent_color": 2523036,
+  "locale": "en-US",
+  "flags": 4194368,
+  "premium_type": 0,
+  "public_flags": 4194368,
+  "avatar_decoration_data": {
+    "asset": "a_64c339e0c8dcb.......",
+    "sku_id": "1400667489.....",
+    "expires_at": 1761433200
+  },
+  "authAt": "2025-01-07T17:14:00.000Z"
 }
 ```
 
-## Deployment
+### Using Discord CDN Assets
 
-This service can be deployed to any platform that supports Next.js:
+#### Avatar URL
 
-- ***[Cloudflare](https://dash.cloudflare.com/?to=/:account/workers-and-pages/create/pages)*** (Recommended & I'm using)
-- **[Vercel](https://vercel.com)** (Recommended)
-- **Netlify**
-- **Railway** (not recommend for this)
-- Or any Node.js hosting platform
+To display user avatars, use Discord's CDN:
 
-### Environment Variables
+```javascript
+const avatarUrl = `https://cdn.discordapp.com/avatars/${userData.id}/${userData.avatar}.webp?size=4096`;
+```
 
-Make sure to set all required environment variables in your deployment platform.
+**Available sizes:** 16, 32, 64, 128, 256, 512, 1024, 2048, 4096
 
-## Security
+**Format options:** `.png`, `.jpg`, `.webp`, `.gif` (if animated)
 
-- ✅ State parameter for CSRF protection
-- ✅ HttpOnly cookies with configurable security
-- ✅ Environment-based secure flag (HTTPS in production)
-- ✅ 5-minute cookie expiration
-- ✅ No hardcoded credentials
-- ✅ Proper error handling and validation
+#### Avatar Decoration
 
-## Error Messages
+If user has an avatar decoration:
 
-| Error | Description |
-|-------|-------------|
-| `Missing code` | Authorization code not received from Discord |
-| `Invalid or missing state parameter` | CSRF validation failed |
-| `Token exchange failed` | Failed to exchange code for access token |
-| `Required scopes missing` | User didn't grant necessary permissions (identify, guilds.members.read) |
-| `Failed to fetch user profile` | Couldn't retrieve user information |
-| `Invalid user data` | User data is incomplete or invalid |
-| `Invalid member data` | Couldn't retrieve user's role information |
-| `You are not a member of the required Discord server. Please join our server first.` | User is not a member of required Discord server |
+```javascript
+if (userData.avatar_decoration_data) {
+  const decorationUrl = `https://cdn.discordapp.com/avatar-decoration-presets/${userData.avatar_decoration_data.asset}.png`;
+}
+```
 
-## OAuth Scopes
+**Important:** Avatar decorations shown with `.png` extension, but if the decoration is animated, the actual format is `.apng` (Animated PNG). The CDN will serve the correct format automatically.
 
-This service uses the following Discord OAuth2 scopes:
-- **identify** - Retrieve user's Discord profile information
-- **guilds.members.read** - Check user's guild membership and roles
+## 📦 Ready-to-Use Templates
 
-**Note:** The `guilds.members.read` scope requires your Discord bot to be present in the server. This scope replaces the need for the `guilds` scope and provides more detailed member information including roles.
+We provide pre-built HTML templates in the **[`templates/`](templates/)** directory that you can directly use:
 
-**Looking for the old version without role verification?** Check out commit [a536dab](../../tree/a536dab04815f298de7c7df49ca8e34deb5dd6ad) which only validates guild membership without checking for specific roles.
+### Available Templates
 
-## Contributing
+- **[`templates/callback.html`](templates/callback.html)** - Callback page for your main domain
+  - Handles postMessage communication with auth domain
+  - Saves user data to localStorage
+  - Sends acknowledgment back
+  - Includes timeout protection and error handling
+  - Beautiful animated loading UI
 
-Contributions are welcome! Please feel free to submit a Pull Request.
+- **[`templates/errormsg.html`](templates/errormsg.html)** - Error page template
+  - Beautiful error page with animations
+  - Supports Discord-style formatting (bold, italic, links)
+  - Click-to-copy error codes
+  - Fully responsive design
+
+## 🔌 Integration Guide
+
+### Quick Integration Steps
+
+1. **Copy the callback template** to your main domain at the path specified in `CALLBACK_PATH`
+2. **Update the origin** in `templates/callback.html`:
+   ```javascript
+   const auth_origin = 'https://your-auth-domain.com';
+   ```
+3. **Deploy and test** the authentication flow
+
+### Understanding the Callback Page
+
+The callback page listens for authentication data using postMessage:
+
+```javascript
+// Listen for auth data from the auth domain
+window.addEventListener('message', (event) => {
+  // Verify origin for security
+  if (event.origin !== auth_origin) return;
+  
+  const { userData, goto, ack } = event.data;
+  
+  // Save to localStorage
+  localStorage.setItem('login_data', JSON.stringify(userData));
+  
+  // Send acknowledgment
+  event.source.postMessage({ ack }, event.origin);
+  
+  // Redirect
+  window.location.href = goto || '/';
+});
+```
+
+**📁 Full implementation with error handling and timeout protection:** See **[`templates/callback.html`](templates/callback.html)**
+
+### Initiating Authentication
+
+```html
+<a href="https://auth.example.com/?to=/dashboard">Login with Discord</a>
+```
+
+## 🛠️ Tech Stack
+
+- **Next.js 15.5+** - Framework with Edge Runtime support
+- **TypeScript 5.9+** - Type safety
+- **Discord OAuth2 API** - Authentication provider
+
+## 📝 Required Discord Scope
+
+- `identify` - Access to user profile information
+
+This scope provides:
+- User ID, username, discriminator
+- Avatar, banner, accent color
+- Locale, flags, premium type
+- And all other basic profile data
+
+## 🐛 Troubleshooting
+
+### Common Issues
+
+**1. CORS Errors**
+- Ensure `MAIN_DOMAIN` and `AUTH_DOMAIN` are correctly configured
+- Verify origin validation in postMessage handlers
+
+**2. Popup Blocked**
+- Service includes fallback for popup blockers
+- Users may need to allow popups for the auth domain
+
+**3. Authentication Timeout**
+- Check network connectivity
+- Verify Discord application credentials
+- Ensure callback URL matches in Discord Developer Portal
+
+**4. Missing Environment Variables**
+- Double-check all required variables are set
+- Restart development server after changing `.env.local`
+
+## 🤝 Contributing
+
+Contributions are welcome! Please read [CONTRIBUTING.md](CONTRIBUTING.md) for details.
+
+### Development Workflow
 
 1. Fork the repository
-2. Create your feature branch (`git checkout -b feature/AmazingFeature`)
-3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
-4. Push to the branch (`git push origin feature/AmazingFeature`)
-5. Open a Pull Request
+2. Create a feature branch
+3. Make your changes
+4. Test thoroughly
+5. Submit a pull request
 
-## License
+## 📄 License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-## Support
+## 🔗 Links
 
-If you encounter any issues or have questions, please [open an issue](../../issues) on GitHub.
+- **Report Issues**: [Here](../../issues)
+- **Discord Developer Portal**: https://discord.com/developers/applications
+- **Next.js Documentation**: https://nextjs.org/docs
 
-## Acknowledgments
+## 📚 Old Versions
 
-- Built with [Next.js](https://nextjs.org/)
-- Uses [Discord OAuth2 API](https://discord.com/developers/docs/topics/oauth2)
+**⚠️ These versions expose user data in URL parameters and are not recommended for production use:**
+- **[Version with Role Verification](../../tree/568479d49cc1193fe1cc44335a60db5f5721f292)** (Unsecure) - Uses URL parameters for data transfer
+- **[Version without Role Verification](../../tree/a536dab04815f298de7c7df49ca8e34deb5dd6ad)** (Unsecure) - Basic guild membership validation only
+
+**Current version** uses secure popup-based postMessage for data transfer, eliminating security vulnerabilities present in older versions.
+
+## ⭐ Support
+
+If you find this project helpful, please consider giving it a [star on GitHub](../../stargazers)!
+
+## 📞 Contact
+
+For questions, issues, or feature requests, please [open an issue](../../issues).
 
 ---
 
-Made with ❤️ for the Discord community and [janvi's Discord server](https://joindc.pages.dev)
+Made with ❤️ for the Discord community
