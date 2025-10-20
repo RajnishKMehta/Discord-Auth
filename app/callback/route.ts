@@ -15,8 +15,10 @@ export async function GET(request: NextRequest) {
   const clientId = process.env.DISCORD_CLIENT_ID
   const clientSecret = process.env.DISCORD_CLIENT_SECRET
   const authDomain = process.env.AUTH_DOMAIN
+  const guildId = process.env.DISCORD_GUILD_ID 
+  const roleId = process.env.ROLE_ID
 
-  if (!mainDomain || !callbackPath || !errorUrl || !clientId || !clientSecret || !authDomain) {
+  if (!mainDomain || !callbackPath || !errorUrl || !clientId || !clientSecret || !authDomain || !guildId || !roleId) {
     return new Response('Server configuration error: missing required environment variables', { status: 500 })
   }
 
@@ -37,13 +39,13 @@ export async function GET(request: NextRequest) {
   // Decode and validate state parameter
   try {
     if (!state) {
-      const response = NextResponse.redirect(buildErrorUrl('Missing state parameter'))
+      const response = NextResponse.redirect(buildErrorUrl('Missing state parameter, maybe you\'re visit callback page directly'))
       return clearOAuthCookies(response)
     }
     
     const decoded = JSON.parse(atob(state))
     if (!Array.isArray(decoded) || decoded.length !== 2) {
-      const response = NextResponse.redirect(buildErrorUrl('Invalid state format'))
+      const response = NextResponse.redirect(buildErrorUrl('Invalid state format, I guess you\'re edited the state parameter'))
       return clearOAuthCookies(response)
     }
     
@@ -58,7 +60,7 @@ export async function GET(request: NextRequest) {
   const cookieBabaji = request.cookies.get('babaji')?.value
   
   if (!stateBabaji || !cookieBabaji || stateBabaji !== cookieBabaji) {
-    const response = NextResponse.redirect(buildErrorUrl('Session expired or invalid, please try again'))
+    const response = NextResponse.redirect(buildErrorUrl('Session expired or invalid please try again'))
     return clearOAuthCookies(response)
   }
 
@@ -95,10 +97,10 @@ export async function GET(request: NextRequest) {
       return clearOAuthCookies(response)
     }
 
-    // Verify identify scope is granted
+    // Verify required scopes are granted
     const scopes = tokenData.scope ? tokenData.scope.split(' ') : []
-    if (!scopes.includes('identify')) {
-      const response = NextResponse.redirect(buildErrorUrl('Required scope missing'))
+    if (!scopes.includes('identify') || !scopes.includes('guilds.members.read')) {
+      const response = NextResponse.redirect(buildErrorUrl('Required scopes missing: you\'re edited the scope parameter, please dont do that, your all data will be fully safe & secure with us'))
       return clearOAuthCookies(response)
     }
 
@@ -121,21 +123,38 @@ export async function GET(request: NextRequest) {
       return clearOAuthCookies(response)
     }
 
-    // Prepare user data - send all Discord user data directly
+    // Check server membership
+    const memberResponse = await fetch(`https://discord.com/api/users/@me/guilds/${guildId}/member`, {
+      headers: {
+        Authorization: `Bearer ${tokenData.access_token}`,
+      },
+    })
+
+    if (!memberResponse.ok) {
+      const response = NextResponse.redirect(buildErrorUrl('You are not in our server please join janvi\'s server first'))
+      return clearOAuthCookies(response)
+    }
+
+    const member = await memberResponse.json()
+
+    if (!member.roles || !Array.isArray(member.roles)) {
+      const response = NextResponse.redirect(buildErrorUrl('Invalid member data'))
+      return clearOAuthCookies(response)
+    }
+
+    // Check if user has verified role
+    const hasVerifiedRole = member.roles.includes(roleId)
+
+    // Prepare user data object
     const userData = {
-      id: user.id,
+      userid: user.id,
       username: user.username,
-      discriminator: user.discriminator,
-      global_name: user.global_name,
-      avatar: user.avatar,
-      mfa_enabled: user.mfa_enabled,
-      banner: user.banner,
-      accent_color: user.accent_color,
-      locale: user.locale,
-      flags: user.flags,
-      premium_type: user.premium_type,
-      public_flags: user.public_flags,
+      name: user.global_name || user.username,
+      avatar: user.avatar || null,
+      banner: user.banner || null,
       avatar_decoration_data: user.avatar_decoration_data,
+      accent_color: user.accent_color,
+      verified: hasVerifiedRole,
       authAt: new Date().toISOString()
     }
 
@@ -148,6 +167,7 @@ export async function GET(request: NextRequest) {
     const callbackUrl = `https://${mainDomain}${callbackPath}`
     const mainOrigin = `https://${mainDomain}`
     const gotoPath = goto || '/'
+    const errorRedirectUrl = buildErrorUrl('Authentication timeout - no acknowledgment received')
     
     // Inject data into HTML
     const html = authPage
@@ -157,7 +177,6 @@ export async function GET(request: NextRequest) {
       .replace('{GOTO}', JSON.stringify(gotoPath))
       .replace('{ACK}', JSON.stringify(ack))
       .replace('{ERROR_URL}', JSON.stringify(errorUrl))
-
     const tempResponse = new Response(html, {
       headers: { 'Content-Type': 'text/html; charset=utf-8' },
     })

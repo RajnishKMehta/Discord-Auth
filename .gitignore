@@ -42,6 +42,6 @@ Thumbs.db
 *~
 
 # other
-.cache
-.config
-.local
+.cache/
+.config/
+.local/

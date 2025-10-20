@@ -1,7 +1,7 @@
 {
   "name": "discord-auth",
-  "version": "1.0.0",
-  "description": "A Lightweight, serverless Discord OAuth2 authentication service for website login",
+  "version": "2.5.0",
+  "description": "Lightweight Discord OAuth2 authentication service with guild membership and role validation",
   "scripts": {
     "dev": "next dev -p 5000 -H 0.0.0.0",
     "build": "next build",
