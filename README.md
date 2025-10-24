@@ -127,7 +127,6 @@ Serves an HTML page that:
     "avatar": "a1cf882453857e...",
     "banner": null,
     "accent_color": 2523036,
-    "accent_color": 2523036,
     "avatar_decoration_data": {
     "asset": "a_64c339e0c8dcb.......",
     "sku_id": "1400667489.....",
@@ -247,23 +246,9 @@ if (errorMessage) {
 ### Complete Example Files
 
 See the `templates` folder for complete implementations:
-- [templates/callback.html](templates/callback.html) - Complete callback receiver page
-- [templates/errormsg.html](templates/errormsg.html) - Error page implementation
-- [templates/error-simple.html](templates/error-simple.html) - Simple error page template
-
-## Deployment
-
-This service can be deployed to any platform that supports Next.js:
-
-- ***[Cloudflare](https://dash.cloudflare.com/?to=/:account/workers-and-pages/create/pages)*** (Recommended & I'm using)
-- **[Vercel](https://vercel.com)** (Recommended)
-- **Netlify**
-- **Railway** (not recommend for this)
-- Or any Node.js hosting platform
-
-### Environment Variables
-
-Make sure to set all required environment variables in your deployment platform.
+- [templates/callback.html](../main/templates/callback.html) - Complete callback receiver page
+- [templates/errormsg.html](../main/templates/errormsg.html) - Error page implementation
+- [templates/error-simple.html](../main/templates/error-simple.html) - Simple error page template
 
 ## Security
 
@@ -277,31 +262,9 @@ Make sure to set all required environment variables in your deployment platform.
 - ✅ **Proper Error Handling** - Comprehensive validation at every step
 - ✅ **Popup-based Authentication** - Avoids localStorage partitioning issues in modern browsers
 
-## Old Versions
-
-**⚠️ These versions expose user data in URL parameters and are not recommended for production use:**
-- **[Version with Role Verification](../../tree/568479d49cc1193fe1cc44335a60db5f5721f292)** (Unsecure) - Uses URL parameters for data transfer
-- **[Version without Role Verification](../../tree/a536dab04815f298de7c7df49ca8e34deb5dd6ad)** (Unsecure) - Basic guild membership validation only
-
-**Current version** uses secure popup-based postMessage for data transfer, eliminating security vulnerabilities present in older versions.
-
-## Contributing
-
-Contributions are welcome! Please feel free to submit a Pull Request.
-
-1. Fork the repository
-2. Create your feature branch (`git checkout -b feature/AmazingFeature`)
-3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
-4. Push to the branch (`git push origin feature/AmazingFeature`)
-5. Open a Pull Request
-
 ## License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
-## Support
-
-If you encounter any issues or have questions, please [open an issue](../../issues) on GitHub.
+This project is licensed under the MIT License - see the [LICENSE](../main/LICENSE) file for details.
 
 ## Acknowledgments
 

@@ -163,14 +163,14 @@
 
     // Start 2-minute timeout when page loads
     continueScreenTimeout = setTimeout(() => {
-      window.location.href = CONFIG.errorUrl + encodeURIComponent('Session expired: authentication timeout in 2 minutes. Please try again and click continue button within 2 minutes');
+      window.location.href = CONFIG.errorUrl + encodeURIComponent('**Session expired:** authentication timeout in 2 minutes. Please try again and click continue button within *2 minutes*');
     }, 120000);
 
     // Listen for acknowledgment (ack) from popup window
     window.addEventListener('message', (ev) => {
       if (ev.origin !== CONFIG.mainOrigin) {
         console.error('Invalid origin:', ev.origin);
-        window.location.href = CONFIG.errorUrl + encodeURIComponent('Invalid ACK origin: untrusted ack data source (domain)');
+        window.location.href = CONFIG.errorUrl + encodeURIComponent('**Invalid ACK origin:** untrusted ack data source (domain), I guess maybe you are logged-in please check once');
         return;
       }
       
@@ -214,7 +214,7 @@
           if (!ackReceived) {
             if (messagingInterval) clearInterval(messagingInterval);
             if (popupWindow && !popupWindow.closed) popupWindow.close();
-            window.location.href = CONFIG.errorUrl + encodeURIComponent('Authentication timeout: no acknowledgment received from main domain');
+            window.location.href = CONFIG.errorUrl + encodeURIComponent('**Authentication timeout:** no acknowledgment received from main domain, I guess maybe you are loggedin please check once');
           }
         }, 7000);
         
@@ -223,7 +223,7 @@
           if (popupWindow.closed) {
             clearInterval(messagingInterval);
             if (!ackReceived) {
-              window.location.href = CONFIG.errorUrl + encodeURIComponent('Popup window was closed before authentication completed');
+              window.location.href = CONFIG.errorUrl + encodeURIComponent('Popup window was closed before authentication completed, please don\'t close popup manually');
             }
             return;
           }
@@ -238,7 +238,7 @@
           } catch (e) {
             console.error('Error sending message:', e);
             clearInterval(messagingInterval);
-            window.location.href = CONFIG.errorUrl + encodeURIComponent('Failed to send authentication data: ' + e.message);
+            window.location.href = CONFIG.errorUrl + encodeURIComponent('**Failed to send authentication data:** ' + e.message);
           }
         }, 500);
         
@@ -248,7 +248,7 @@
         }, 7000);
       } else {
         // Popup blocked, redirect to error
-        window.location.href = CONFIG.errorUrl + encodeURIComponent('Popup blocked: please allow popups for this site and try again');
+        window.location.href = CONFIG.errorUrl + encodeURIComponent('Popup blocked: please *allow popups* for auth site and try again');
       }
     }
 

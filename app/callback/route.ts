@@ -39,13 +39,13 @@ export async function GET(request: NextRequest) {
   // Decode and validate state parameter
   try {
     if (!state) {
-      const response = NextResponse.redirect(buildErrorUrl('Missing state parameter, maybe you\'re visit callback page directly'))
+      const response = NextResponse.redirect(buildErrorUrl('Missing state parameter, maybe you\'re visit callback page **directly**'))
       return clearOAuthCookies(response)
     }
     
     const decoded = JSON.parse(atob(state))
     if (!Array.isArray(decoded) || decoded.length !== 2) {
-      const response = NextResponse.redirect(buildErrorUrl('Invalid state format, I guess you\'re edited the state parameter'))
+      const response = NextResponse.redirect(buildErrorUrl('Invalid state format, I guess **you\'re edited** the state parameter(url) please don\'t do that'))
       return clearOAuthCookies(response)
     }
     
@@ -60,7 +60,7 @@ export async function GET(request: NextRequest) {
   const cookieBabaji = request.cookies.get('babaji')?.value
   
   if (!stateBabaji || !cookieBabaji || stateBabaji !== cookieBabaji) {
-    const response = NextResponse.redirect(buildErrorUrl('Session expired or invalid please try again'))
+    const response = NextResponse.redirect(buildErrorUrl('Session expired or invalid please ***try again***'))
     return clearOAuthCookies(response)
   }
 
@@ -93,14 +93,14 @@ export async function GET(request: NextRequest) {
     const tokenData = await tokenResponse.json()
 
     if (!tokenData.access_token) {
-      const response = NextResponse.redirect(buildErrorUrl('Token exchange failed'))
+      const response = NextResponse.redirect(buildErrorUrl('Token exchange failed, please *retry*'))
       return clearOAuthCookies(response)
     }
 
     // Verify required scopes are granted
     const scopes = tokenData.scope ? tokenData.scope.split(' ') : []
     if (!scopes.includes('identify') || !scopes.includes('guilds.members.read')) {
-      const response = NextResponse.redirect(buildErrorUrl('Required scopes missing: you\'re edited the scope parameter, please dont do that, your all data will be fully safe & secure with us'))
+      const response = NextResponse.redirect(buildErrorUrl('**Required scopes missing:** *you\'re edited* the scope parameter, please dont do that, your all data will be **fully safe and secure** with us'))
       return clearOAuthCookies(response)
     }
 
@@ -131,7 +131,7 @@ export async function GET(request: NextRequest) {
     })
 
     if (!memberResponse.ok) {
-      const response = NextResponse.redirect(buildErrorUrl('You are not in our server please join janvi\'s server first'))
+      const response = NextResponse.redirect(buildErrorUrl('You are *not found* in our server please **[join janvi\'s server](https://joindc.pages.dev)** first'))
       return clearOAuthCookies(response)
     }
 
@@ -167,7 +167,7 @@ export async function GET(request: NextRequest) {
     const callbackUrl = `https://${mainDomain}${callbackPath}`
     const mainOrigin = `https://${mainDomain}`
     const gotoPath = goto || '/'
-    const errorRedirectUrl = buildErrorUrl('Authentication timeout - no acknowledgment received')
+    const errorRedirectUrl = buildErrorUrl('Authentication timeout: no acknowledgment received, *might be* you are logged-in please check once')
     
     // Inject data into HTML
     const html = authPage
