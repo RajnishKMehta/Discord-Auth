@@ -274,6 +274,16 @@ This scope provides:
 - Locale, flags, premium type
 - And all other basic profile data
 
+## Deployment
+
+This service can be deployed to any platform that supports Next.js:
+
+- ***[Cloudflare](https://dash.cloudflare.com/?to=/:account/workers-and-pages/create/pages)*** (Recommended & I'm using)
+- **[Vercel](https://vercel.com)** (Recommended)
+- **Netlify**
+- **Railway** (not recommend for this)
+- Or any Node.js hosting platform
+
 ## 🐛 Troubleshooting
 
 ### Common Issues
@@ -300,7 +310,6 @@ This scope provides:
 Contributions are welcome! Please read [CONTRIBUTING.md](CONTRIBUTING.md) for details.
 
 ### Development Workflow
-
 1. Fork the repository
 2. Create a feature branch
 3. Make your changes

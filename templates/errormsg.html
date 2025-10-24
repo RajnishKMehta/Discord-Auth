@@ -386,6 +386,20 @@
     </div>
   </div>
 
+  <!-- error code is only for showoff and getting error timestamp
+  <script>
+    const code = "M5MQCP1C"; // 👈 error code
+// Step 1: Convert base-36 string back to number
+const timestamp = parseInt(code.toLowerCase(), 36);
+
+// Step 2: Convert timestamp (ms) to Date object
+const date = new Date(timestamp);
+
+// Step 3: Print both raw and readable form
+console.log("Decoded Timestamp (ms):", timestamp);
+console.log("Readable Date:", date.toISOString());
+console.log("Local Time:", date.toLocaleString());
+  </script> -->
   <script>
     function parseDiscordFormatting(text) {
       text = text.replace(/\+/g, ' ');
@@ -430,7 +444,6 @@
       
       document.title = 'Authentication Error';
     }
-
     document.getElementById('errorCode').addEventListener('click', copyErrorCode);
     displayError();
   </script>

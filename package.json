@@ -1,6 +1,6 @@
 {
   "name": "discord-auth",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "description": "A Lightweight, serverless Discord OAuth2 authentication service for website login",
   "scripts": {
     "dev": "next dev -p 5000 -H 0.0.0.0",
@@ -10,7 +10,7 @@
   },
   "author": "Rajnish Mehta",
   "license": "MIT",
-  "packageManager": "pnpm@10.18.3",
+  "packageManager": "pnpm@10.19.0",
   "dependencies": {
     "@types/node": "^24.7.0",
     "next": "^15.5.4",
