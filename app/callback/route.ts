@@ -17,7 +17,16 @@ export async function GET(request: NextRequest) {
   const authDomain = process.env.AUTH_DOMAIN
 
   if (!mainDomain || !callbackPath || !errorUrl || !clientId || !clientSecret || !authDomain) {
-    return new Response('Server configuration error: missing required environment variables', { status: 500 })
+    return new Response(
+      `Server configuration error: missing required environment variables
+  MAIN_DOMAIN=${!!mainDomain}
+  CALLBACK_PATH=${!!callbackPath}
+  ERROR_URL=${!!process.env.ERROR_URL}
+  DISCORD_CLIENT_ID=${!!clientId}
+  DISCORD_CLIENT_SECRET=${!!clientSecret}
+  AUTH_DOMAIN=${!!authDomain}`,
+      { status: 500 }
+    )
   }
 
   // Helper to build error redirect URL
