@@ -1,5 +1,5 @@
 {
-  "name": "Discord Auth",
+  "name": "discord-auth",
   "version": "2.0.1",
   "description": "A Lightweight, serverless Discord OAuth2 authentication service for website login",
   "scripts": {
@@ -12,11 +12,12 @@
   "license": "MIT",
   "packageManager": "pnpm@10.28.1",
   "dependencies": {
-    "@types/node": "^25.0.10",
+    "@types/node": "^22.13.0",
     "next": "^16.1.4",
     "typescript": "^5.9.3"
   },
   "devDependencies": {
-    "@types/react": "^19.2.9"
+    "@types/react": "^19.2.9",
+    "@types/react-dom": "^19.2.3"
   }
 }
