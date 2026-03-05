@@ -12,7 +12,7 @@
   "license": "MIT",
   "packageManager": "pnpm@10.28.1",
   "dependencies": {
-    "@types/node": "^22.19.12",
+    "@types/node": "^22.19.13",
     "next": "^16.1.6",
     "typescript": "^5.9.3"
   },
