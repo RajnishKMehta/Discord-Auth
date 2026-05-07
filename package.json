@@ -13,7 +13,7 @@
   "packageManager": "pnpm@10.28.1",
   "dependencies": {
     "@types/node": "^22.19.17",
-    "next": "^16.2.4",
+    "next": "^16.2.5",
     "typescript": "^5.9.3"
   },
   "devDependencies": {
